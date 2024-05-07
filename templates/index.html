@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Question Answering Page</title>
+</head>
+<body>
+    <h1>Question Answering Page</h1>
+    <form id="qaForm">
+        <label for="url">Website URL:</label><br>
+        <input type="text" id="url" name="url" required><br><br>
+        <label for="question">Question:</label><br>
+        <input type="text" id="question" name="question" required><br><br>
+        <input type="submit" value="Get Answer">
+    </form>
+
+    <div id="answer"></div>
+
+    <script>
+        document.getElementById("qaForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var url = document.getElementById("url").value;
+            var question = document.getElementById("question").value;
+
+            fetch('http://localhost:5000/answer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({url: url, question: question})
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("answer").innerHTML = "<strong>Answer:</strong> " + data.answer;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
