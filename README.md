@@ -7,16 +7,19 @@
 To set up a virtual environment for this project, follow these steps:
 
 1. Clone the repository and navigate to the project directory.
-2. Create a virtual environment named `venv`:
+2. Create a virtual environment named `myenv`:
+   ```
+    python -m venv myenv 
+    ```
 
-3. Activate the virtual environment:
+4. Activate the virtual environment:
 - Windows:
   ```
-  venv\Scripts\activate
+  myenv\Scripts\activate
   ```
 - macOS/Linux:
   ```
-  source venv/bin/activate
+  source myenv/bin/activate
   ```
 4. Install dependencies:
    ```
