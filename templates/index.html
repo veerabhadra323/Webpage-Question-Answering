@@ -40,7 +40,7 @@
       .then(response => response.json())
       .then(data => {
         const answerElement = document.getElementById('answer');
-        answerElement.textContent = data.answer || 'Answer not found.';
+        answerElement.textContent = data.answer || "I don't know the answer.";
       })
       .catch(error => {
         console.error('Error:', error);
