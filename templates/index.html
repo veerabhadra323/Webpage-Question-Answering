@@ -1,41 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Question Answering Page</title>
-</head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webpage Question Answering</title>
+  <link rel="stylesheet" href="../static/css/style.css"> </head>
 <body>
-    <h1>Question Answering Page</h1>
-    <form id="qaForm">
-        <label for="url">Website URL:</label><br>
-        <input type="text" id="url" name="url" required><br><br>
-        <label for="question">Question:</label><br>
-        <input type="text" id="question" name="question" required><br><br>
-        <input type="submit" value="Get Answer">
+  <div class="container">
+    <h1>Webpage Question Answering</h1>
+    <form action="/" method="post">
+      <div class="form-group">
+        <label for="url">Webpage URL:</label>
+        <input type="text" id="url" name="url" placeholder="https://example.com/" required>
+      </div>
+      <div class="form-group">
+        <label for="question">Question:</label>
+        <textarea id="question" name="question" rows="5" placeholder="Enter your question here..." required></textarea>
+      </div>
+      <button type="submit" class="ask-button">Ask Question</button>
     </form>
+    <div id="answer" class="answer-container"></div>
+  </div>
 
-    <div id="answer"></div>
+  <script>
+    const form = document.querySelector('form');
+    form.addEventListener('submit', (event) => {
+      event.preventDefault(); // Prevent default form submission
 
-    <script>
-        document.getElementById("qaForm").addEventListener("submit", function(event) {
-            event.preventDefault();
-            var url = document.getElementById("url").value;
-            var question = document.getElementById("question").value;
+      const url = document.getElementById('url').value;
+      const question = document.getElementById('question').value;
 
-            fetch('http://localhost:5000/answer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({url: url, question: question})
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("answer").innerHTML = "<strong>Answer:</strong> " + data.answer;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        });
-    </script>
+      const data = { url, question };
+
+      fetch('/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(data => {
+        const answerElement = document.getElementById('answer');
+        answerElement.textContent = data.answer || 'Answer not found.';
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        const answerElement = document.getElementById('answer');
+        answerElement.textContent = 'An error occurred.';
+      });
+    });
+  </script>
 </body>
 </html>

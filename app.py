@@ -1,50 +1,133 @@
-from flask import Flask, request, jsonify, redirect, url_for,  render_template
+from flask import Flask, request, jsonify, render_template
+import openai
+from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 import requests
-import openai
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
-# openai.api_key = "sk-mwpBfLq2RMSL5JpDPvW3T3BlbkFJyrzsBTZtRlaRnjbOOQ5Xv"
-
-# def get_answer_from_openai(question, context):
-#     response = openai.Answer.create(
-#         search_model="davinci",
-#         model="davinci",
-#         question=question,
-#         context=context
-#     )
-#     return response["answers"][0]["text"]
-
-# def get_answer_from_web(url, question):
-#     response = requests.get(url)
-#     soup = BeautifulSoup(response.content, 'html.parser')
-#     paragraphs = soup.find_all('p')
-#     for paragraph in paragraphs:
-#         if question.lower() in paragraph.text.lower():
-#             return paragraph.text.strip()
-#     return "I don't know the answer"
+# Access the API key
+openai.api_key = os.getenv('OPEN_AI_API_KEY')
 
 @app.route('/')
-def welcome():
-    return "welcome"
+def index():
+    return render_template('index.html')
 
-# @app.route('/answer', methods=['POST'])
-# def answer_question():
-#     data = request.json
-#     url = data['url']
-#     question = data['question']
+@app.route('/answer', methods=['POST'])
+def question_answering():
+    if request.method == 'POST':
+        url = request.json.get('url')
+        question = request.json.get('question')
 
-#     try:
-#         answer = get_answer_from_web(url, question)
-#     except:
-#         answer = "I don't know the answer"
+        if not url or not question:
+            return jsonify({'error': 'Missing required fields: url and question'}), 400
 
-#     if answer == "I don't know the answer":
-#         context = " ".join([p.text for p in BeautifulSoup(requests.get(url).content, 'html.parser').find_all('p')])
-#         answer = get_answer_from_openai(question, context)
+        try:
+            # Fetch webpage content
+            response = requests.get(url)
+            response.raise_for_status()  # Raise exception for non-2xx status codes
 
-#     return jsonify({'answer': answer})
+            # Parse HTML content
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Customize answer extraction based on webpage structure (consider using libraries like scrapy for complex sites)
+            answer_elements = soup.find_all(['p', 'h1', 'h2', 'h3', 'li'])  # Adjust selectors as needed
+
+            # Extract text from relevant elements
+            extracted_text = ' '.join([element.get_text(strip=True) for element in answer_elements[:2]])
+
+            # Use OpenAI to refine and summarize potential answers (consider cost implications)
+            openai_response = openai.Completion.create(
+                engine="gpt-3.5-turbo-instruct",  # Adjust engine as needed
+
+                # prompt=f"Question: {question}. Webpage Content: {extracted_text}. Can you summarize the most relevant answer in given {extracted_text} ? if relevant answer not found in {extracted_text} say 'I don’t know the answer'",
+                prompt = f'''**Given the question:** {question}. **Can you identify the factual information in the provided text that directly addresses the question?**
+                **Context:** {extracted_text} If no relevant information is found in the {extracted_text}, please respond with "I don't know the answer".
+                **... directly related to the question WITHOUT creating new information or going beyond the provided context...**''',
+                max_tokens=100,  # Adjust max tokens for cost and conciseness
+                n=1,
+                stop=None,
+                temperature=0.7,  # Adjust temperature for creativity vs. accuracy
+            )
+
+            print(openai_response)
+
+            final_answer = openai_response.choices[0].text.strip()
+
+            return jsonify({'answer': final_answer})
+        except requests.exceptions.RequestException as e:
+            return jsonify({'error': f"Error fetching webpage: {e}"}), 500
+        except openai.error.OpenAIError as e:
+            return jsonify({'error': f"Error with OpenAI API: {e}"}), 500
+
+    return jsonify({'message': 'Use POST request with JSON data: {"url": "...", "question": "..."}'}), 405
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+# from flask import Flask, request, jsonify, render_template
+# import openai
+# from bs4 import BeautifulSoup
+# import requests
+
+# app = Flask(__name__)
+
+# openai.api_key = "sk-proj-0IDioLaL3YyVN1uyLp3MT3BlbkFJQBpSeoZI6nmWvSXjhBnF"
+
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
+
+# @app.route('/answer', methods=['POST'])
+# def question_answering():
+#     if request.method == 'POST':
+#         url = request.json.get('url')
+#         question = request.json.get('question')
+
+#         if not url or not question:
+#             return jsonify({'error': 'Missing required fields: url and question'}), 400
+
+#         try:
+#             # Fetch webpage content
+#             response = requests.get(url)
+#             response.raise_for_status()  # Raise exception for non-2xx status codes
+
+#             # Parse HTML content
+#             soup = BeautifulSoup(response.content, 'html.parser')
+
+#             # Extract text from relevant elements
+#             extracted_text = ' '.join([element.get_text(strip=True) for element in soup.find_all(['p', 'h1', 'h2', 'h3', 'li'])[:2]])
+
+#             # Use OpenAI to summarize extracted text
+#             openai_response = openai.Completion.create(
+#                 engine="gpt-3.5-turbo-instruct",  # Adjust engine as needed
+#                 # prompt=f"Question: {question}. Webpage Content: {extracted_text}. Can you summarize the most relevant answer in given {extracted_text} ? if relevant answer not found in {extracted_text} say 'I don’t know the answer'",
+#                 prompt = f'''**Given the question:** {question}. **Can you identify the factual information in the provided text that directly addresses the question?**
+#                 **Context:** {extracted_text} If no relevant information is found in the context, please respond with "I don't know the answer".
+#                 **... directly related to the question WITHOUT creating new information or going beyond the provided context...**''',
+#                 max_tokens=100,  # Adjust max tokens for cost and conciseness
+#                 n=1,
+#                 stop=None,
+#                 temperature=0.7,  # Adjust temperature for creativity vs. accuracy
+#             )
+
+#             final_answer = openai_response.choices[0].text.strip()
+
+#             return jsonify({'answer': final_answer})
+#         except requests.exceptions.RequestException as e:
+#             return jsonify({'error': f"Error fetching webpage: {e}"}), 500
+#         except openai.error.OpenAIError as e:
+#             return jsonify({'error': f"Error with OpenAI API: {e}"}), 500
+
+#     return jsonify({'message': 'Use POST request with JSON data: {"url": "...", "question": "..."}'}), 405
+
+
+
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
