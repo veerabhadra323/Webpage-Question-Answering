@@ -11,7 +11,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Access the API key
-openai.api_key = os.getenv('OPEN_AI_API_KEY')
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 @app.route('/')
 def index():
